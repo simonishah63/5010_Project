@@ -74,9 +74,11 @@ load-test:
 # ---- Generate PDF Plot Report ----
 
 POD_NAME := $(shell kubectl get pods -l app=moga-optimizer -o jsonpath="{.items[0].metadata.name}")
+POD_NAME_JMETER := $(shell kubectl get pod -l app=jmeter -o jsonpath="{.items[0].metadata.name}")
 copy-csv:
 	kubectl cp $(POD_NAME):/app/plot_data/convergence_all.csv ./moga-optimizer/plot_data/convergence_all.csv
 	kubectl cp $(POD_NAME):/app/plot_data/final_generation_all.csv ./moga-optimizer/plot_data/final_generation_all.csv
+	kubectl cp ${POD_NAME_JMETER}:/jmeter-results/results.csv ./moga-optimizer/plot_data/results.csv
 
 generate-plot: copy-csv
 	docker run --rm \

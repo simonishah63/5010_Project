@@ -5,17 +5,19 @@ from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Dict
 
+catalog_global = None
+
 def calculate_actual_cost(services: pd.DataFrame) -> float:
     """Calculate actual cost from service catalog"""
-    return services['price'].sum() * 0.8  # Example discount factor
+    return services['price'].sum() * 0.8
 
 def calculate_actual_availability(services: pd.DataFrame) -> float:
-    """Calculate actual availability (example implementation)"""
-    return services['availability'].product()  # Assuming availability is between 0-1
+    """Calculate actual availability (0-1)"""
+    return services['availability'].product()
 
 def calculate_actual_latency(services: pd.DataFrame) -> float:
-    """Calculate actual latency (example implementation)"""
-    return services['latency'].max()  # Worst-case latency
+    """Calculate actual latency (Worst-case latency)"""
+    return services['latency'].max()
 
 @lru_cache(maxsize=1000)
 def cached_metrics(service_ids: tuple) -> tuple:
@@ -73,7 +75,7 @@ def crossover(parent1: Dict, parent2: Dict) -> tuple:
     services1 = pd.DataFrame(parent1['selected_services'])
     services2 = pd.DataFrame(parent2['selected_services'])
     
-    # Example: Take one service from each parent
+    # Take one service from each parent
     child_services = pd.concat([
         services1.sample(n=1),
         services2.sample(n=1)
@@ -111,8 +113,8 @@ def create_individual(services: pd.DataFrame = None) -> Dict:
 
 def moga_optimize(catalog: pd.DataFrame, generations: int = 10, pop_size: int = 20) -> List[Dict]:
     """Multi-Objective Genetic Algorithm Optimizer"""
-    global catalog  # Make catalog available to cached functions
-    catalog = catalog.copy()
+    global catalog_global  # Make catalog available to cached functions
+    catalog_global = catalog.copy()
     
     # Initialize population
     with ThreadPoolExecutor() as executor:

@@ -5,6 +5,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 # Load actual output
 convergence = pd.read_csv("/app/plot_data/convergence_all.csv")
 final = pd.read_csv("/app/plot_data/final_generation_all.csv")
+jmeter_df = pd.read_csv("/app/plot_data/results.csv")
 
 output_pdf = "/app/plot_data/GA_Evaluation_From_Real_Run.pdf"
 
@@ -16,7 +17,7 @@ with PdfPages(output_pdf) as pdf:
     plt.plot(convergence['generation'], convergence['avg_availability'], label="Avg Availability", linewidth=2)
     plt.xlabel("Generation")
     plt.ylabel("Metric Value")
-    plt.title("Figure 1: GA Convergence Over Generations")
+    plt.title("Figure 1: GA Convergence of Avg Cost & Availability Across Generations")
     plt.legend()
     plt.grid(True)
     pdf.savefig()
@@ -43,6 +44,20 @@ with PdfPages(output_pdf) as pdf:
     plt.ylabel("Individuals")
     plt.legend()
     plt.grid(True)
+    pdf.savefig()
+    plt.close()
+
+    jmeter_df['second'] = (jmeter_df['timeStamp'] / 1000).astype(int)
+    grouped = jmeter_df.groupby('second')['elapsed'].mean().reset_index()
+
+    # Plot response time over time/load
+    plt.figure()
+    plt.plot(grouped['second'], grouped['elapsed'], color='blue', label='Avg Response Time')
+    plt.xlabel("Time (s)")
+    plt.ylabel("Response Time (ms)")
+    plt.title("Figure 4: Response Time vs Time (Load Simulation)")
+    plt.grid(True)
+    plt.legend()
     pdf.savefig()
     plt.close()
 
