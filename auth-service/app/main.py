@@ -9,6 +9,10 @@ Instrumentator().instrument(app).expose(app)
 def root():
     return {"message": "Authentication Microservice running!"}
 
+@app.get("/healthz")
+def health():
+    return {"status": "ok"}
+
 @app.get("/generate-catalog")
 def catalog():
     df = generate_catalog()

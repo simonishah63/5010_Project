@@ -3,19 +3,20 @@
 PROJECT_ID ?= finalproject-5010-467518
 REGION ?= us-central1
 
-AUTH_IMAGE = gcr.io/$(PROJECT_ID)/auth-service:latest
-MOGA_IMAGE = gcr.io/$(PROJECT_ID)/moga-optimizer:latest
+TAG ?= $(shell date +%Y%m%d%H%M%S)
+AUTH_IMAGE = gcr.io/$(PROJECT_ID)/auth-service
+MOGA_IMAGE = gcr.io/$(PROJECT_ID)/moga-optimizer
 
 # ---- Build & Push Docker Images ----
 
 build-auth:
-	cd auth-service && docker buildx build --platform linux/amd64 -t $(AUTH_IMAGE) .
+	cd auth-service && docker buildx build --no-cache --platform linux/amd64 -t $(AUTH_IMAGE) .
 
 push-auth:
 	docker push $(AUTH_IMAGE)
 
 build-moga:
-	cd moga-optimizer && docker buildx build --platform linux/amd64 -t $(MOGA_IMAGE) .
+	cd moga-optimizer && docker buildx build --no-cache --platform linux/amd64 -t $(MOGA_IMAGE) .
 
 push-moga:
 	docker push $(MOGA_IMAGE)
@@ -47,6 +48,12 @@ deploy-monitoring:
 
 deploy-all: deploy-services deploy-monitoring deploy-jmeter
 
+# ---- Kubernetes ReDeployment ----
+
+redeploy-auth: build-auth push-auth deploy-auth
+redeploy-moga: build-moga push-moga deploy-moga
+redeploy-all: redeploy-auth redeploy-moga
+
 # ---- Load Test ----
 
 # load-test:
@@ -55,18 +62,26 @@ deploy-all: deploy-services deploy-monitoring deploy-jmeter
 # ---- Load Test (Run JMeter in Cluster) ----
 
 load-test:
-	export JMETER_POD=$$(kubectl get pod -l app=jmeter -o jsonpath="{.items[0].metadata.name}") && \
+	@JMETER_POD=$$(kubectl get pod -l app=jmeter -o jsonpath="{.items[0].metadata.name}") && \
 	echo "Copying JMX script into pod: $$JMETER_POD" && \
 	kubectl cp load-testing/moga-load-script.jmx default/$$JMETER_POD:/moga-load-script.jmx && \
-	kubectl exec -it $$JMETER_POD -- jmeter -n -t /moga-load-script.jmx -l /jmeter-results/results.csv -j /jmeter-results/jmeter.log
+	kubectl exec -it $$JMETER_POD -- mkdir -p /jmeter-results && \
+	kubectl exec -it $$JMETER_POD -- jmeter -n -t /moga-load-script.jmx -l /jmeter-results/results.csv -j /jmeter-results/jmeter.log && \
+	echo "Copying JMeter results from pod to local machine..." && \
+	kubectl cp default/$$JMETER_POD:/jmeter-results/results.csv ./load-testing/results.csv && \
+	kubectl cp default/$$JMETER_POD:/jmeter-results/jmeter.log ./load-testing/jmeter.log
 
 # ---- Generate PDF Plot Report ----
 
-generate-plot:
-	generate-plot:
+POD_NAME := $(shell kubectl get pods -l app=moga-optimizer -o jsonpath="{.items[0].metadata.name}")
+copy-csv:
+	kubectl cp $(POD_NAME):/app/plot_data/convergence_all.csv ./moga-optimizer/plot_data/convergence_all.csv
+	kubectl cp $(POD_NAME):/app/plot_data/final_generation_all.csv ./moga-optimizer/plot_data/final_generation_all.csv
+
+generate-plot: copy-csv
 	docker run --rm \
-		-v $(pwd)/moga-optimizer/plot_data:/app/plot_data \
-		python:3.10-slim bash -c "pip install matplotlib pandas && python /app/plot_data/generate_plots.py"
+		-v $(shell pwd)/moga-optimizer:/app/ \
+		python:3.10-slim bash -c "pip install matplotlib pandas && python /app/app/generate_plots.py"
 
 # ---- Cleanup ----
 

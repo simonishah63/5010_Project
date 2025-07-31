@@ -30,11 +30,11 @@ def moga_optimize(catalog: pd.DataFrame, generations=10, pop_size=5):
 
     # Save data for plots
     print("Saving convergence to /app/plot_data/convergence_all.csv")
-    pd.DataFrame(convergence).to_csv("/app/plot_data/convergence_all.csv", index=False, mode='a', header=False)
+    pd.DataFrame(convergence).to_csv("/app/plot_data/convergence_all.csv", index=False, mode='w', header=True)
     print("Saved convergence!")
 
     print("Saving final gen to /app/plot_data/final_generation_all.csv")
-    pd.DataFrame(final_gen_data).to_csv("/app/plot_data/final_generation_all.csv", index=False, mode='a', header=False)
+    pd.DataFrame(final_gen_data).to_csv("/app/plot_data/final_generation_all.csv", index=False, mode='w', header=True)
     print("Saved final generation!")
 
     # Return top 3 for API

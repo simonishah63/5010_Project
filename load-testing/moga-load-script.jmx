@@ -10,12 +10,12 @@
         <collectionProp name="Arguments.arguments">
           <elementProp name="AUTH_SERVICE_HOST" elementType="Argument">
             <stringProp name="Argument.name">AUTH_SERVICE_HOST</stringProp>
-            <stringProp name="Argument.value">auth-service.default.svc.cluster.local</stringProp>
+            <stringProp name="Argument.value">auth-service.default.svc.cluster.local:8000</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="MOGA_OPTIMIZER_HOST" elementType="Argument">
             <stringProp name="Argument.name">MOGA_OPTIMIZER_HOST</stringProp>
-            <stringProp name="Argument.value">moga-optimizer.default.svc.cluster.local</stringProp>
+            <stringProp name="Argument.value">moga-optimizer.default.svc.cluster.local:8000</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
@@ -27,9 +27,9 @@
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
           <boolProp name="LoopController.continue_forever">false</boolProp>
-          <stringProp name="LoopController.loops">10</stringProp>
+          <stringProp name="LoopController.loops">100</stringProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">2</stringProp>
+        <stringProp name="ThreadGroup.num_threads">5</stringProp>
         <stringProp name="ThreadGroup.ramp_time">10</stringProp>
         <longProp name="ThreadGroup.start_time">1690800000000</longProp>
         <longProp name="ThreadGroup.end_time">1690800000000</longProp>
@@ -42,7 +42,7 @@
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments"/>
           </elementProp>
-          <stringProp name="HTTPSampler.domain">${AUTH_SERVICE_HOST}</stringProp>
+          <stringProp name="HTTPSampler.domain">auth-service.default.svc.cluster.local</stringProp>
           <stringProp name="HTTPSampler.port">8000</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.path">/generate-catalog</stringProp>
@@ -61,9 +61,9 @@
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
           <boolProp name="LoopController.continue_forever">false</boolProp>
-          <stringProp name="LoopController.loops">10</stringProp>
+          <stringProp name="LoopController.loops">100</stringProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">2</stringProp>
+        <stringProp name="ThreadGroup.num_threads">5</stringProp>
         <stringProp name="ThreadGroup.ramp_time">10</stringProp>
         <longProp name="ThreadGroup.start_time">1690800000000</longProp>
         <longProp name="ThreadGroup.end_time">1690800000000</longProp>
@@ -76,7 +76,7 @@
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments"/>
           </elementProp>
-          <stringProp name="HTTPSampler.domain">${MOGA_OPTIMIZER_HOST}</stringProp>
+          <stringProp name="HTTPSampler.domain">moga-optimizer.default.svc.cluster.local</stringProp>
           <stringProp name="HTTPSampler.port">8000</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.path">/optimize</stringProp>
