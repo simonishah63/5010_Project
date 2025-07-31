@@ -1,41 +1,161 @@
 import random
 import pandas as pd
+import numpy as np
+from functools import lru_cache
+from concurrent.futures import ThreadPoolExecutor
+from typing import List, Dict
 
-def moga_optimize(catalog: pd.DataFrame, generations=10, pop_size=5):
-    convergence = {"generation": [], "avg_cost": [], "avg_availability": []}
-    final_gen_data = []
+def calculate_actual_cost(services: pd.DataFrame) -> float:
+    """Calculate actual cost from service catalog"""
+    return services['price'].sum() * 0.8  # Example discount factor
+
+def calculate_actual_availability(services: pd.DataFrame) -> float:
+    """Calculate actual availability (example implementation)"""
+    return services['availability'].product()  # Assuming availability is between 0-1
+
+def calculate_actual_latency(services: pd.DataFrame) -> float:
+    """Calculate actual latency (example implementation)"""
+    return services['latency'].max()  # Worst-case latency
+
+@lru_cache(maxsize=1000)
+def cached_metrics(service_ids: tuple) -> tuple:
+    """Memoized metric calculation for service combinations"""
+    services = catalog.loc[list(service_ids)]
+    return (
+        calculate_actual_cost(services),
+        calculate_actual_availability(services),
+        calculate_actual_latency(services)
+    )
+
+def nsga2_sort(population: List[Dict]) -> List[Dict]:
+    """NSGA-II non-dominated sorting with crowding distance"""
+    # Implement non-dominated sorting
+    fronts = [[]]
+    for ind in population:
+        ind['dominated_by'] = 0
+        ind['dominates'] = []
+        for other in population:
+            if (ind['cost'] < other['cost'] and 
+                ind['availability'] > other['availability'] and
+                ind['latency'] < other['latency']):
+                ind['dominates'].append(other)
+            elif (other['cost'] < ind['cost'] and 
+                  other['availability'] > ind['availability'] and
+                  other['latency'] < ind['latency']):
+                ind['dominated_by'] += 1
+        if ind['dominated_by'] == 0:
+            fronts[0].append(ind)
+    
+    # Crowding distance calculation
+    for front in fronts:
+        for metric in ['cost', 'availability', 'latency']:
+            front.sort(key=lambda x: x[metric])
+            front[0]['crowding'] = float('inf')
+            front[-1]['crowding'] = float('inf')
+            metric_range = front[-1][metric] - front[0][metric]
+            for i in range(1, len(front)-1):
+                front[i]['crowding'] = (front[i+1][metric] - front[i-1][metric]) / metric_range
+    
+    # Flatten fronts with crowding distance
+    return sorted(population, key=lambda x: (x['dominated_by'], -x.get('crowding', 0)))
+
+def tournament_selection(population: List[Dict], size: int) -> List[Dict]:
+    """Tournament selection with size 2"""
+    selected = []
+    for _ in range(size):
+        candidates = random.sample(population, 2)
+        winner = min(candidates, key=lambda x: x['dominated_by'])
+        selected.append(winner)
+    return selected
+
+def crossover(parent1: Dict, parent2: Dict) -> tuple:
+    """Uniform crossover for service combinations"""
+    services1 = pd.DataFrame(parent1['selected_services'])
+    services2 = pd.DataFrame(parent2['selected_services'])
+    
+    # Example: Take one service from each parent
+    child_services = pd.concat([
+        services1.sample(n=1),
+        services2.sample(n=1)
+    ]).drop_duplicates()
+    
+    return create_individual(child_services), create_individual(child_services.sample(frac=1))
+
+def mutate(individual: Dict) -> Dict:
+    """Mutation by replacing one random service"""
+    services = pd.DataFrame(individual['selected_services'])
+    if len(catalog) > len(services):
+        # Replace one service
+        services = services.sample(frac=1).head(1)
+        new_service = catalog[~catalog.index.isin(services.index)].sample(1)
+        mutated = pd.concat([services, new_service])
+        return create_individual(mutated)
+    return individual
+
+def create_individual(services: pd.DataFrame = None) -> Dict:
+    """Create an individual with actual metrics"""
+    if services is None:
+        services = catalog.sample(n=2)  # Select 2 services
+    
+    service_ids = tuple(sorted(services.index.tolist()))
+    cost, availability, latency = cached_metrics(service_ids)
+    
+    return {
+        "selected_services": services.to_dict(orient="records"),
+        "cost": round(cost, 2),
+        "availability": round(availability, 2),
+        "latency": round(latency, 3),
+        "dominated_by": 0,
+        "crowding": 0
+    }
+
+def moga_optimize(catalog: pd.DataFrame, generations: int = 10, pop_size: int = 20) -> List[Dict]:
+    """Multi-Objective Genetic Algorithm Optimizer"""
+    global catalog  # Make catalog available to cached functions
+    catalog = catalog.copy()
+    
+    # Initialize population
+    with ThreadPoolExecutor() as executor:
+        population = list(executor.map(create_individual, [None]*pop_size))
+    
+    convergence = {
+        "generation": [],
+        "avg_cost": [],
+        "avg_availability": [],
+        "min_cost": [],
+        "max_availability": []
+    }
+
     for g in range(generations):
-        population = []
-        for _ in range(pop_size):
-            individual = catalog.sample(frac=1).reset_index(drop=True).head(2)
-            cost = random.uniform(0.1, 1.0)
-            availability = random.uniform(0.8, 1.0)
-            latency = random.uniform(0.05, 0.3)  # Simulate latency
-            population.append({
-                "selected_services": individual.to_dict(orient="records"),
-                "cost": round(cost, 2),
-                "availability": round(availability, 2),
-                "latency": round(latency, 3)
-            })
+        # NSGA-II sorting
+        population = nsga2_sort(population)
         
-        # Log convergence data
-        avg_cost = sum(p['cost'] for p in population) / pop_size
-        avg_availability = sum(p['availability'] for p in population) / pop_size
+        # Early termination check
+        if g > 5 and len(convergence["avg_cost"]) > 5:
+            if abs(convergence["avg_cost"][-1] - convergence["avg_cost"][-5]) < 0.01:
+                break
+        
+        # Selection and reproduction
+        parents = tournament_selection(population, pop_size//2)
+        offspring = []
+        for i in range(0, len(parents)-1, 2):
+            child1, child2 = crossover(parents[i], parents[i+1])
+            offspring.extend([mutate(child1), mutate(child2)])
+        
+        # New generation (elitism + offspring)
+        population = population[:pop_size//2] + offspring[:pop_size//2]
+        
+        # Log convergence
         convergence["generation"].append(g + 1)
-        convergence["avg_cost"].append(avg_cost)
-        convergence["avg_availability"].append(avg_availability)
+        convergence["avg_cost"].append(np.mean([i['cost'] for i in population]))
+        convergence["avg_availability"].append(np.mean([i['availability'] for i in population]))
+        convergence["min_cost"].append(min(i['cost'] for i in population))
+        convergence["max_availability"].append(max(i['availability'] for i in population))
 
-        if g == generations - 1:
-            final_gen_data = population
-
-    # Save data for plots
-    print("Saving convergence to /app/plot_data/convergence_all.csv")
-    pd.DataFrame(convergence).to_csv("/app/plot_data/convergence_all.csv", index=False, mode='w', header=True)
-    print("Saved convergence!")
-
-    print("Saving final gen to /app/plot_data/final_generation_all.csv")
-    pd.DataFrame(final_gen_data).to_csv("/app/plot_data/final_generation_all.csv", index=False, mode='w', header=True)
-    print("Saved final generation!")
-
-    # Return top 3 for API
-    return sorted(final_gen_data, key=lambda x: (x['cost'], -x['availability']))[:3]
+    # Save results
+    pd.DataFrame(convergence).to_csv("/app/plot_data/convergence_all.csv", index=False)
+    pd.DataFrame(population).to_csv("/app/plot_data/final_generation_all.csv", index=False)
+    
+    # Return Pareto-optimal solutions
+    pareto_front = [ind for ind in population if ind['dominated_by'] == 0]
+    return sorted(pareto_front, key=lambda x: (x['cost'], -x['availability']))[:3]
