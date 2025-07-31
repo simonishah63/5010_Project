@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jmeter
+spec:
+  type: LoadBalancer
+  selector:
+    app: jmeter
+  ports:
+    - name: jmeter-ui
+      port: 60000
+      targetPort: 60000

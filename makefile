@@ -35,30 +35,50 @@ deploy-moga:
 
 deploy-services: deploy-auth deploy-moga
 
+deploy-jmeter: 
+	kubectl apply -f load-testing/deployment.yaml
+	kubectl apply -f load-testing/service.yaml
+
 deploy-monitoring:
 	kubectl apply -f monitoring/prometheus-deployment.yaml
 	kubectl apply -f monitoring/prometheus-service.yaml
 	kubectl apply -f monitoring/grafana-deployment.yaml
 	kubectl apply -f monitoring/grafana-service.yaml
 
-deploy-all: deploy-services deploy-monitoring
+deploy-all: deploy-services deploy-monitoring deploy-jmeter
 
 # ---- Load Test ----
 
+# load-test:
+# 	cd load-testing && jmeter -n -t moga-load-script.jmx -l results.csv -j jmeter.log
+
+# ---- Load Test (Run JMeter in Cluster) ----
+
 load-test:
-	cd load-testing && jmeter -n -t moga-load-script.jmx -l results.csv -j jmeter.log
+	export JMETER_POD=$$(kubectl get pod -l app=jmeter -o jsonpath="{.items[0].metadata.name}") && \
+	echo "Copying JMX script into pod: $$JMETER_POD" && \
+	kubectl cp load-testing/moga-load-script.jmx default/$$JMETER_POD:/moga-load-script.jmx && \
+	kubectl exec -it $$JMETER_POD -- jmeter -n -t /moga-load-script.jmx -l /jmeter-results/results.csv -j /jmeter-results/jmeter.log
+
+# ---- Generate PDF Plot Report ----
+
+generate-plot:
+	generate-plot:
+	docker run --rm \
+		-v $(pwd)/moga-optimizer/plot_data:/app/plot_data \
+		python:3.10-slim bash -c "pip install matplotlib pandas && python /app/plot_data/generate_plots.py"
 
 # ---- Cleanup ----
 
 cleanup:
-	kubectl delete deployment auth-service moga-optimizer prometheus grafana || true
-	kubectl delete svc auth-service moga-optimizer prometheus grafana || true
+	kubectl delete deployment auth-service moga-optimizer prometheus grafana jmeter || true
+	kubectl delete svc auth-service moga-optimizer prometheus grafana jmeter || true
 	kubectl delete configmap prometheus-config || true
 
 # ---- Info ----
 
 get-ips:
-	kubectl get svc grafana prometheus auth-service moga-optimizer
+	kubectl get svc grafana prometheus auth-service moga-optimizer jmeter
 
 # ---- Help ----
 
@@ -75,8 +95,10 @@ help:
 	@echo "  deploy-auth        Deploy auth
 	@echo "  deploy-moga        Deploy moga-optimizer to GKE"
 	@echo "  deploy-services    Deploy all services"
+	@echo "  deploy-jmeter      Deploy JMeter pod for in-cluster testing"
 	@echo "  deploy-monitoring  Deploy Prometheus + Grafana"
 	@echo "  deploy-all         Deploy everything (services + monitoring)"
-	@echo "  load-test          Run Apache JMeter test"
+	@echo "  load-test          Run Apache JMeter load test inside cluster"
+	@echo "  generate-plot      Generate performance plot as PDF"
 	@echo "  cleanup            Remove all K8s deployments/services/configmaps"
 	@echo "  get-ips            Show external IPs of all services"

@@ -17,3 +17,9 @@ spec:
           image: gcr.io/finalproject-5010-467518/moga-optimizer:latest
           ports:
             - containerPort: 8000
+          volumeMounts:
+            - name: plotdata-volume
+              mountPath: /app/plot_data
+      volumes:
+        - name: plotdata-volume
+          emptyDir: {}
