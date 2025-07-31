@@ -23,6 +23,7 @@ with PdfPages(output_pdf) as pdf:
     pdf.savefig()
     plt.close()
 
+    print(final)
     # Figure 2: Pareto Front
     plt.figure()
     plt.scatter(final['latency'], final['cost'], c=final['availability'], cmap='viridis', s=80, edgecolors='k')
@@ -35,15 +36,31 @@ with PdfPages(output_pdf) as pdf:
     plt.close()
 
     # Figure 3: Distribution
-    plt.figure()
-    plt.hist(final['cost'], bins=10, alpha=0.6, label='Cost')
-    plt.hist(final['availability'], bins=10, alpha=0.6, label='Availability')
-    plt.hist(final['latency'], bins=10, alpha=0.6, label='Latency')
-    plt.title("Figure 3: Final Generation Metric Distribution")
-    plt.xlabel("Metric Value")
-    plt.ylabel("Individuals")
-    plt.legend()
-    plt.grid(True)
+    fig, axs = plt.subplots(3, 1, figsize=(10, 8))
+
+    # Subplot 1: Cost
+    axs[0].hist(final['cost'], bins=10, color='skyblue', alpha=0.8)
+    axs[0].set_title("Distribution of Cost")
+    axs[0].set_xlabel("Cost")
+    axs[0].set_ylabel("Frequency")
+    axs[0].grid(True)
+
+    # Subplot 2: Availability
+    axs[1].hist(final['availability'], bins=10, color='lightgreen', alpha=0.8)
+    axs[1].set_title("Distribution of Availability")
+    axs[1].set_xlabel("Availability")
+    axs[1].set_ylabel("Frequency")
+    axs[1].grid(True)
+
+    # Subplot 3: Latency
+    axs[2].hist(final['latency'], bins=10, color='salmon', alpha=0.8)
+    axs[2].set_title("Distribution of Latency")
+    axs[2].set_xlabel("Latency")
+    axs[2].set_ylabel("Frequency")
+    axs[2].grid(True)
+
+    # Adjust layout to avoid overlap
+    plt.subplots_adjust(hspace=0.5)
     pdf.savefig()
     plt.close()
 

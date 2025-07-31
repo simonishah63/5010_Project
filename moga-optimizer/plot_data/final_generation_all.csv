@@ -1,6 +1,21 @@
-selected_services,cost,availability,latency
-"[{'service_name': 'auth-service', 'version': '1.0.0', 'owner': 'Security Team', 'host': 'auth-service.default.svc.cluster.local', 'port': 8000, 'status': 'active', 'last_updated': '2025-07-31T03:14:29.372523'}, {'service_name': 'user-service', 'version': '2.1.1', 'owner': 'User Management Team', 'host': 'user-service.default.svc.cluster.local', 'port': 8001, 'status': 'active', 'last_updated': '2025-07-31T03:14:29.372527'}]",0.47,0.94,0.149
-"[{'service_name': 'user-service', 'version': '2.1.1', 'owner': 'User Management Team', 'host': 'user-service.default.svc.cluster.local', 'port': 8001, 'status': 'active', 'last_updated': '2025-07-31T03:14:29.372527'}, {'service_name': 'auth-service', 'version': '1.0.0', 'owner': 'Security Team', 'host': 'auth-service.default.svc.cluster.local', 'port': 8000, 'status': 'active', 'last_updated': '2025-07-31T03:14:29.372523'}]",0.72,0.93,0.252
-"[{'service_name': 'user-service', 'version': '2.1.1', 'owner': 'User Management Team', 'host': 'user-service.default.svc.cluster.local', 'port': 8001, 'status': 'active', 'last_updated': '2025-07-31T03:14:29.372527'}, {'service_name': 'auth-service', 'version': '1.0.0', 'owner': 'Security Team', 'host': 'auth-service.default.svc.cluster.local', 'port': 8000, 'status': 'active', 'last_updated': '2025-07-31T03:14:29.372523'}]",0.13,0.95,0.176
-"[{'service_name': 'auth-service', 'version': '1.0.0', 'owner': 'Security Team', 'host': 'auth-service.default.svc.cluster.local', 'port': 8000, 'status': 'active', 'last_updated': '2025-07-31T03:14:29.372523'}, {'service_name': 'user-service', 'version': '2.1.1', 'owner': 'User Management Team', 'host': 'user-service.default.svc.cluster.local', 'port': 8001, 'status': 'active', 'last_updated': '2025-07-31T03:14:29.372527'}]",0.78,0.83,0.235
-"[{'service_name': 'user-service', 'version': '2.1.1', 'owner': 'User Management Team', 'host': 'user-service.default.svc.cluster.local', 'port': 8001, 'status': 'active', 'last_updated': '2025-07-31T03:14:29.372527'}, {'service_name': 'auth-service', 'version': '1.0.0', 'owner': 'Security Team', 'host': 'auth-service.default.svc.cluster.local', 'port': 8000, 'status': 'active', 'last_updated': '2025-07-31T03:14:29.372523'}]",0.57,0.9,0.298
+cost,availability,latency
+0.03,0.86,139.78
+0.03,0.92,298.23
+0.19,0.93,203.66
+0.04,0.89,154.26
+0.11,0.97,291.36
+0.07,0.95,251.83
+0.07,0.9,222.27
+0.04,0.9,250.23
+0.16,0.94,209.84
+0.15,0.9,149.33
+0.08,0.92,149.97
+0.06,0.87,149.97
+0.06,0.87,149.97
+0.09,0.88,149.97
+0.06,0.87,169.5
+0.1,0.9,278.24
+0.09,0.86,153.14
+0.18,0.89,279.42
+0.12,0.87,279.42
+0.11,0.87,279.42

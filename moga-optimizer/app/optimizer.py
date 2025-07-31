@@ -164,7 +164,9 @@ def moga_optimize(catalog: pd.DataFrame, generations: int = 10, pop_size: int = 
 
     # Save results
     pd.DataFrame(convergence).to_csv("/app/plot_data/convergence_all.csv", index=False)
-    pd.DataFrame(population).to_csv("/app/plot_data/final_generation_all.csv", index=False)
+    pd.DataFrame([
+    {"cost": i["cost"], "availability": i["availability"], "latency": i["latency"]}
+    for i in population]).to_csv("/app/plot_data/final_generation_all.csv", index=False)
     
     # Return Pareto-optimal solutions
     pareto_front = [ind for ind in population if ind['dominated_by'] == 0]
