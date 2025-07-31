@@ -22,7 +22,7 @@ def calculate_actual_latency(services: pd.DataFrame) -> float:
 @lru_cache(maxsize=1000)
 def cached_metrics(service_ids: tuple) -> tuple:
     """Memoized metric calculation for service combinations"""
-    services = catalog.loc[list(service_ids)]
+    services = catalog_global.loc[list(service_ids)]
     return (
         calculate_actual_cost(services),
         calculate_actual_availability(services),
@@ -50,13 +50,21 @@ def nsga2_sort(population: List[Dict]) -> List[Dict]:
     
     # Crowding distance calculation
     for front in fronts:
+        if len(front) < 3:
+            for ind in front:
+                ind['crowding'] = 0.0
+            continue
         for metric in ['cost', 'availability', 'latency']:
             front.sort(key=lambda x: x[metric])
-            front[0]['crowding'] = float('inf')
-            front[-1]['crowding'] = float('inf')
+            front[0]['crowding'] = 1e9
+            front[-1]['crowding'] = 1e9
             metric_range = front[-1][metric] - front[0][metric]
-            for i in range(1, len(front)-1):
-                front[i]['crowding'] = (front[i+1][metric] - front[i-1][metric]) / metric_range
+            if metric_range == 0:
+                for i in range(1, len(front) - 1):
+                    front[i]['crowding'] = 0.0
+            else:
+                for i in range(1, len(front) - 1):
+                    front[i]['crowding'] = (front[i + 1][metric] - front[i - 1][metric]) / metric_range
     
     # Flatten fronts with crowding distance
     return sorted(population, key=lambda x: (x['dominated_by'], -x.get('crowding', 0)))
@@ -86,10 +94,10 @@ def crossover(parent1: Dict, parent2: Dict) -> tuple:
 def mutate(individual: Dict) -> Dict:
     """Mutation by replacing one random service"""
     services = pd.DataFrame(individual['selected_services'])
-    if len(catalog) > len(services):
+    if len(catalog_global) > len(services):
         # Replace one service
         services = services.sample(frac=1).head(1)
-        new_service = catalog[~catalog.index.isin(services.index)].sample(1)
+        new_service = catalog_global[~catalog_global.index.isin(services.index)].sample(1)
         mutated = pd.concat([services, new_service])
         return create_individual(mutated)
     return individual
@@ -97,7 +105,7 @@ def mutate(individual: Dict) -> Dict:
 def create_individual(services: pd.DataFrame = None) -> Dict:
     """Create an individual with actual metrics"""
     if services is None:
-        services = catalog.sample(n=2)  # Select 2 services
+        services = catalog_global.sample(n=2)  # Select 2 services
     
     service_ids = tuple(sorted(services.index.tolist()))
     cost, availability, latency = cached_metrics(service_ids)
